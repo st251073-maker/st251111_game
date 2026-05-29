@@ -3,694 +3,643 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Crystal Odyssey - MMO Prototype</title>
+    <title>Crystal Odyssey - PC Edition</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap');
 
         :root {
             --ui-bg: rgba(10, 15, 25, 0.7);
-            --ui-border: rgba(74, 111, 165, 0.5);
-            --ui-glow: rgba(74, 111, 165, 0.8);
-            --hp-color: #00ffaa;
-            --mp-color: #00ccff;
-            --exp-color: #ffaa00;
-            --cast-color: #FFC107;
+            --ui-border: rgba(74, 111, 165, 0.6);
+            --ui-glow: rgba(0, 204, 255, 0.8);
             --text-main: #f0f8ff;
             --gold: #f9d77e;
+            --overload-color: #ff00ff;
         }
 
         body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000;
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: #050a15;
             font-family: 'Noto Sans JP', sans-serif;
             user-select: none;
         }
 
-        /* 3D Canvas */
-        #game-canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Loading Screen */
-        #loading {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #050a15;
-            color: var(--gold);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            transition: opacity 1s;
-        }
-        .spinner {
-            width: 40px; height: 40px;
-            border: 4px solid rgba(212, 175, 55, 0.3);
-            border-top: 4px solid var(--gold);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #game-canvas { display: block; width: 100%; height: 100%; position: absolute; z-index: 1; }
 
         /* UI Layer Overlay */
         #ui-layer {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; /* Let clicks pass through to 3D canvas by default */
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10;
         }
 
         .panel {
-            pointer-events: auto; /* Enable clicks on UI elements */
-            background: var(--ui-bg);
-            border: 1px solid var(--ui-border);
-            border-radius: 8px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 0 15px rgba(74, 111, 165, 0.1);
-            color: var(--text-main);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            pointer-events: auto; background: var(--ui-bg);
+            border: 1px solid var(--ui-border); border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.6); color: var(--text-main);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
         }
 
-        /* Player Frame */
+        /* Top HUD Area */
+        #top-hud { display: flex; justify-content: space-between; padding: 20px; pointer-events: none;}
+        
         #player-frame {
-            position: absolute;
-            top: 20px; left: 20px;
-            width: 250px;
-            padding: 10px;
-            display: flex;
-            align-items: center;
+            width: 250px; padding: 12px; pointer-events: auto; display: flex; align-items: center;
         }
         .avatar {
-            width: 50px; height: 50px;
-            background: linear-gradient(135deg, #2c3e50, #3498db);
-            border: 2px solid var(--gold);
-            border-radius: 50%;
-            margin-right: 15px;
+            width: 50px; height: 50px; background: linear-gradient(135deg, #2c3e50, #3498db);
+            border: 2px solid var(--gold); border-radius: 50%; margin-right: 15px;
             box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
         }
         .bars { flex-grow: 1; }
-        .name-level { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px; text-shadow: 1px 1px 2px #000; }
-        .bar-container { width: 100%; height: 14px; background: rgba(0,0,0,0.8); border-radius: 7px; margin-bottom: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);}
-        .bar-fill { height: 100%; width: 100%; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .hp-fill { background: linear-gradient(90deg, #00b09b, #96c93d); box-shadow: 0 0 10px rgba(150, 201, 61, 0.5); }
-        .mp-fill { background: linear-gradient(90deg, #005c97, #363795); box-shadow: 0 0 10px rgba(0, 92, 151, 0.5);}
-        .bar-text { position: absolute; width: 100%; text-align: center; font-size: 11px; line-height: 14px; font-weight: bold; text-shadow: 1px 1px 2px #000, 0 0 4px #000; letter-spacing: 1px;}
+        .name-level { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-bottom: 5px; text-shadow: 1px 1px 2px #000; }
+        .bar-container { width: 100%; height: 12px; background: rgba(0,0,0,0.8); border-radius: 6px; margin-bottom: 6px; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);}
+        .bar-fill { height: 100%; width: 0%; transition: width 0.2s ease-out; }
+        .hp-fill { background: linear-gradient(90deg, #00b09b, #96c93d); }
+        .mp-fill { background: linear-gradient(90deg, #005c97, #363795); }
+        .exp-fill { background: linear-gradient(90deg, #ff9900, #ffcc00); }
+        .bar-text { position: absolute; width: 100%; text-align: center; font-size: 10px; line-height: 12px; font-weight: bold; text-shadow: 1px 1px 2px #000; }
 
-        /* Target Frame */
+        #overload-container { margin-top: 6px; border: 1px solid var(--overload-color); box-shadow: 0 0 5px var(--overload-color); }
+        #overload-fill { background: linear-gradient(90deg, #8e24aa, #ff00ff); width: 0%; }
+
+        #right-hud { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; pointer-events: auto; }
+        .resource-pill { padding: 8px 15px; background: rgba(0,0,0,0.6); border: 1px solid var(--ui-glow); border-radius: 20px; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 8px;}
+        .crystal-icon { color: #00ffff; text-shadow: 0 0 5px #00ffff; }
+
+        /* Target Frame (Center Top) */
         #target-frame {
-            position: absolute;
-            top: 20px; left: 50%;
-            transform: translateX(-50%);
-            width: 280px;
-            padding: 8px 15px;
-            display: none;
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            width: 300px; padding: 10px 15px; display: none; text-align: center;
         }
         #target-frame.active { display: block; }
-        .target-header { text-align: center; font-weight: bold; margin-bottom: 5px; color: #ff5252; text-shadow: 1px 1px 2px #000;}
+        .target-name { font-size: 14px; font-weight: bold; color: #ff5252; margin-bottom: 5px; text-shadow: 1px 1px 2px #000;}
 
-        /* Action Bar */
+        /* PC Action Bar (Bottom Center) */
         #action-bar {
-            position: absolute;
-            bottom: 30px; left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 5px;
-            padding: 8px;
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 10px; padding: 12px; pointer-events: auto;
         }
         .skill-btn {
-            width: 45px; height: 45px;
-            background: rgba(0,0,0,0.6);
-            border: 1px solid var(--ui-border);
-            border-radius: 4px;
-            cursor: pointer;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 20px;
-            transition: all 0.1s;
+            width: 55px; height: 55px; background: rgba(0,0,0,0.6); border: 1px solid var(--ui-border);
+            border-radius: 6px; cursor: pointer; position: relative; display: flex;
+            justify-content: center; align-items: center; font-size: 26px; transition: all 0.1s;
         }
-        .skill-btn:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
+        .skill-btn:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 0 10px rgba(249, 215, 126, 0.3); }
         .skill-btn:active { transform: translateY(0); }
-        .skill-key { position: absolute; top: -5px; left: -5px; background: var(--ui-bg); border: 1px solid var(--ui-border); border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: flex; justify-content: center; align-items: center; font-weight: bold; }
-        .cooldown-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); height: 0%; transition: height linear; }
-
-        /* Chat Box */
-        #chat-box {
-            position: absolute;
-            bottom: 20px; left: 20px;
-            width: 350px; height: 200px;
-            display: flex;
-            flex-direction: column;
-            background: rgba(10, 15, 25, 0.6);
+        .skill-btn-text { font-size: 14px; font-weight: bold; color: white; }
+        .skill-key {
+            position: absolute; top: -8px; left: -8px; background: var(--ui-bg);
+            border: 1px solid var(--gold); border-radius: 50%; width: 22px; height: 22px;
+            font-size: 11px; display: flex; justify-content: center; align-items: center;
+            color: var(--gold); font-weight: bold; pointer-events: none;
         }
-        #chat-messages {
-            flex-grow: 1;
-            padding: 10px;
-            overflow-y: auto;
-            font-size: 13px;
-            line-height: 1.4;
-            text-shadow: 1px 1px 1px #000;
-        }
-        #chat-messages::-webkit-scrollbar { width: 5px; }
-        #chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
-        .msg-sys { color: #FFEB3B; }
-        .msg-combat { color: #ff5252; }
-        .msg-say { color: #ffffff; }
-        .msg-other { color: #64B5F6; }
-        #chat-input-container { display: flex; border-top: 1px solid rgba(255,255,255,0.1); }
-        #chat-input { flex-grow: 1; background: transparent; border: none; color: white; padding: 8px; outline: none; font-family: inherit; }
-
-        /* Floating Names (3D to 2D projection) */
-        #name-tags { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; }
-        .name-tag { position: absolute; transform: translate(-50%, -100%); color: white; font-size: 12px; font-weight: bold; text-shadow: 1px 1px 2px black, -1px -1px 2px black, 1px -1px 2px black, -1px 1px 2px black; text-align: center; transition: opacity 0.2s;}
-        .name-tag.npc { color: #81D4FA; }
-        .name-tag.monster { color: #EF5350; }
+        .cd-overlay { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: rgba(0,0,0,0.7); border-radius: 5px; }
         
-        /* Floating Combat Text */
-        .combat-text {
-            position: absolute;
-            color: red; font-size: 24px; font-weight: bold;
-            text-shadow: 0 0 5px black, 0 0 5px black;
-            pointer-events: none;
-            animation: floatUp 1s ease-out forwards;
-        }
-        @keyframes floatUp {
-            0% { transform: translate(-50%, 0) scale(0.5); opacity: 1; }
-            50% { transform: translate(-50%, -30px) scale(1.2); opacity: 1; }
-            100% { transform: translate(-50%, -60px) scale(1); opacity: 0; }
-        }
+        #btn-overload-pc { border-color: var(--overload-color); opacity: 0.5; filter: grayscale(100%); transition: all 0.3s; }
+        #btn-overload-pc.ready { opacity: 1; filter: grayscale(0%); animation: pulse 1s infinite alternate; box-shadow: 0 0 15px var(--overload-color); cursor: pointer; }
+        @keyframes pulse { 0% { transform: scale(1); } 100% { transform: scale(1.05); } }
+        
+        #btn-auto-pc.active { background: rgba(76, 175, 80, 0.4); border-color: #4CAF50; box-shadow: 0 0 10px rgba(76, 175, 80, 0.5); }
 
-        /* Game Over Screen */
-        #game-over-screen {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(10, 15, 25, 0.85);
-            backdrop-filter: blur(8px);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            color: white;
+        /* Chat System */
+        #chat-sys {
+            position: absolute; bottom: 30px; left: 20px;
+            width: 350px; height: 200px; display: flex; flex-direction: column; pointer-events: auto;
         }
-        .retry-btn {
-            padding: 12px 30px;
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--text-main);
-            background: rgba(74, 111, 165, 0.5);
-            border: 2px solid var(--gold);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 0 15px rgba(249, 215, 126, 0.2);
-        }
-        .retry-btn:hover {
-            background: rgba(249, 215, 126, 0.2);
-            box-shadow: 0 0 25px rgba(249, 215, 126, 0.5);
-            transform: scale(1.05);
-        }
+        #chat-messages { flex-grow: 1; overflow-y: auto; font-size: 13px; padding: 10px; line-height: 1.4; text-shadow: 1px 1px 1px #000;}
+        #chat-messages::-webkit-scrollbar { width: 6px; }
+        #chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+        .msg-sys { color: #FFEB3B; } .msg-combat { color: #ff5252; } .msg-say { color: #ffffff; }
+        #chat-input-row { display: flex; border-top: 1px solid rgba(255,255,255,0.2); }
+        .stamp-btn { padding: 8px; background: none; border: none; font-size: 18px; cursor: pointer; color: white; border-right: 1px solid rgba(255,255,255,0.2); }
+        .stamp-btn:hover { background: rgba(255,255,255,0.1); }
+        #chat-input { flex-grow: 1; background: transparent; border: none; color: white; padding: 8px 10px; outline: none; font-family: inherit; font-size: 13px; }
+        #stamp-menu { position: absolute; bottom: 40px; left: 0; background: var(--ui-bg); padding: 8px; border-radius: 8px; display: none; gap: 8px; pointer-events: auto;}
+        .stamp-item { font-size: 24px; cursor: pointer; transition: transform 0.1s;}
+        .stamp-item:hover { transform: scale(1.2); }
 
-        /* Controls Help */
+        /* PC Controls Help */
         #controls-help {
-            position: absolute; top: 20px; right: 20px; padding: 10px; font-size: 12px; text-align: right; opacity: 0.7; pointer-events: none;
+            position: absolute; bottom: 30px; right: 30px; padding: 15px; font-size: 13px;
+            text-align: right; pointer-events: none; opacity: 0.8;
         }
-        #controls-help kbd { background: #333; padding: 2px 5px; border-radius: 3px; font-family: monospace; border: 1px solid #555; box-shadow: 0 2px 0 #111; }
+        #controls-help kbd { background: #333; padding: 3px 8px; border-radius: 4px; font-family: monospace; border: 1px solid #555; margin: 0 2px; box-shadow: 0 2px 0 #111; }
+
+        /* Floating Info */
+        #name-tags { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 5;}
+        .name-tag { position: absolute; transform: translate(-50%, -100%); color: white; font-size: 12px; font-weight: bold; text-shadow: 1px 1px 2px #000, -1px -1px 2px #000; text-align: center; }
+        .combat-text { position: absolute; font-size: 24px; font-weight: bold; text-shadow: 0 0 5px black; pointer-events: none; animation: floatUp 1s ease-out forwards; z-index: 100;}
+        @keyframes floatUp { 0% { transform: translate(-50%, 0) scale(0.5); opacity: 1; } 50% { transform: translate(-50%, -30px) scale(1.2); opacity: 1; } 100% { transform: translate(-50%, -60px) scale(1); opacity: 0; } }
+
+        .sys-message-overlay {
+            position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%);
+            color: var(--gold); font-size: 32px; font-weight: bold; text-shadow: 0 0 15px rgba(0,0,0,0.9);
+            pointer-events: none; opacity: 0; transition: opacity 0.5s; text-align: center; z-index: 200;
+        }
+
+        #loading-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000;
+            display: flex; justify-content: center; align-items: center; color: white; font-size: 24px; z-index: 999;
+            transition: opacity 0.5s;
+        }
     </style>
-    <!-- Include Three.js via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <!-- Loading Screen -->
-    <div id="loading">
-        <div class="spinner"></div>
-        <h2>Crystal Odyssey</h2>
-        <p>ワールドを生成中...</p>
-    </div>
-
-    <!-- 3D WebGL Canvas -->
+    <div id="loading-screen">Loading PC Edition...</div>
     <canvas id="game-canvas"></canvas>
 
-    <!-- UI Overlay -->
     <div id="ui-layer">
-        
-        /* Player Frame */
-        <div id="player-frame" class="panel">
-            <div class="avatar"></div>
-            <div class="bars">
-                <div class="name-level">
-                    <span>プレイヤー <span id="player-lives" style="font-size: 11px; margin-left: 5px; text-shadow: none;">❤️❤️❤️</span></span>
-                    <span id="player-level" style="color: var(--gold);">Lv.1</span>
+        <!-- Top Area: Player & Target -->
+        <div id="top-hud">
+            <div id="player-frame" class="panel">
+                <div class="avatar"></div>
+                <div class="bars">
+                    <div class="name-level"><span>Hero <span id="lives">❤️❤️❤️</span></span> <span id="level" style="color:var(--gold);">Lv.1</span></div>
+                    <div class="bar-container"><div id="hp-fill" class="bar-fill hp-fill" style="width:100%;"></div><div id="hp-text" class="bar-text">1000/1000</div></div>
+                    <div class="bar-container"><div id="mp-fill" class="bar-fill mp-fill" style="width:100%;"></div></div>
+                    <div class="bar-container" style="height:6px;"><div id="exp-fill" class="bar-fill exp-fill"></div></div>
+                    <div class="bar-container" id="overload-container"><div id="overload-fill" class="bar-fill"></div><div class="bar-text" style="color:white; font-size:9px;">OVERLOAD</div></div>
                 </div>
-                <div class="bar-container">
-                    <div id="player-hp-fill" class="bar-fill hp-fill"></div>
-                    <div id="player-hp-text" class="bar-text">500 / 500</div>
-                </div>
-                <div class="bar-container">
-                    <div id="player-mp-fill" class="bar-fill mp-fill"></div>
-                    <div id="player-mp-text" class="bar-text">100 / 100</div>
-                </div>
-                <div class="bar-container" style="height: 6px; margin-bottom: 0;">
-                    <div id="player-exp-fill" class="bar-fill" style="background: linear-gradient(90deg, #ff9900, #ffcc00); box-shadow: 0 0 8px #ffcc00; width: 0%;"></div>
+            </div>
+
+            <div id="right-hud">
+                <div class="resource-pill panel">
+                    <span class="crystal-icon">💎</span> <span id="crystal-count">0</span>
                 </div>
             </div>
         </div>
 
-        <!-- Target Frame -->
         <div id="target-frame" class="panel">
-            <div id="target-name" class="target-header">クリスタルスライム</div>
-            <div class="bar-container">
-                <div id="target-hp-fill" class="bar-fill hp-fill" style="background: linear-gradient(90deg, #b71c1c, #f44336);"></div>
-                <div id="target-hp-text" class="bar-text">800 / 800</div>
+            <div id="target-name" class="target-name">-</div>
+            <div class="bar-container" style="margin-bottom:0;"><div id="target-hp" class="bar-fill hp-fill" style="background:#f44336; width:0%;"></div></div>
+        </div>
+
+        <!-- Chat System -->
+        <div id="chat-sys" class="panel">
+            <div id="chat-messages"></div>
+            <div id="chat-input-row">
+                <button class="stamp-btn" onclick="toggleStampMenu()">😊</button>
+                <input type="text" id="chat-input" placeholder="チャットを入力 (Enterで送信)" autocomplete="off">
+            </div>
+            <div id="stamp-menu" class="panel">
+                <span class="stamp-item" onclick="sendStamp('⚔️')">⚔️</span>
+                <span class="stamp-item" onclick="sendStamp('🛡️')">🛡️</span>
+                <span class="stamp-item" onclick="sendStamp('💎')">💎</span>
+                <span class="stamp-item" onclick="sendStamp('👍')">👍</span>
+                <span class="stamp-item" onclick="sendStamp('😭')">😭</span>
+            </div>
+        </div>
+
+        <!-- PC Action Bar -->
+        <div id="action-bar" class="panel">
+            <div class="skill-btn" onclick="castSkill(1)">
+                <div class="skill-key">1</div>⚔️<div id="cd-1" class="cd-overlay"></div>
+            </div>
+            <div class="skill-btn" onclick="castSkill(2)">
+                <div class="skill-key">2</div>🔥<div id="cd-2" class="cd-overlay"></div>
+            </div>
+            <div class="skill-btn" onclick="castSkill(3)">
+                <div class="skill-key">3</div>✨<div id="cd-3" class="cd-overlay"></div>
+            </div>
+            <div class="skill-btn" onclick="smartTarget()">
+                <div class="skill-key">T</div><span class="skill-btn-text">TGT</span>
+            </div>
+            <div class="skill-btn" id="btn-auto-pc" onclick="toggleAuto()">
+                <div class="skill-key">Q</div><span class="skill-btn-text">AUTO</span>
+            </div>
+            <div class="skill-btn" id="btn-overload-pc" onclick="triggerOverload()">
+                <div class="skill-key" style="border-color:var(--overload-color); color:var(--overload-color);">R</div>🔮
             </div>
         </div>
 
         <!-- Controls Help -->
-        <div id="controls-help">
+        <div id="controls-help" class="panel">
             <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> : 移動</div>
-            <div style="margin-top:5px;">右ドラッグ : カメラ操作</div>
-            <div style="margin-top:5px;">左クリック : ターゲット</div>
-        </div>
-
-        <!-- Chat Box -->
-        <div id="chat-box" class="panel">
-            <div id="chat-messages"></div>
-            <div id="chat-input-container">
-                <input type="text" id="chat-input" placeholder="チャットを入力 (Enterで送信)" autocomplete="off">
-            </div>
-        </div>
-
-        <!-- Action Bar -->
-        <div id="action-bar" class="panel">
-            <div class="skill-btn" onclick="castSkill(1)">
-                <div class="skill-key">1</div>⚔️
-                <div id="cd-1" class="cooldown-overlay"></div>
-            </div>
-            <div class="skill-btn" onclick="castSkill(2)">
-                <div class="skill-key">2</div>🔥
-                <div id="cd-2" class="cooldown-overlay"></div>
-            </div>
-            <div class="skill-btn" onclick="castSkill(3)">
-                <div class="skill-key">3</div>✨
-                <div id="cd-3" class="cooldown-overlay"></div>
-            </div>
-        </div>
-
-        <!-- Dynamic Name Tags -->
-        <div id="name-tags"></div>
-
-        <!-- Game Over Screen -->
-        <div id="game-over-screen">
-            <h1 style="font-size: 48px; color: #ff5252; text-shadow: 0 0 20px #ff0000; margin-bottom: 20px;">GAME OVER</h1>
-            <p style="margin-bottom: 30px; font-size: 18px;">すべてのライフを失いました...</p>
-            <button class="retry-btn" onclick="restartGame()">リトライ</button>
+            <div style="margin-top:8px;">右ドラッグ : カメラ操作</div>
+            <div style="margin-top:8px;">左クリック : ターゲット選択</div>
+            <div style="margin-top:8px;"><kbd>Esc</kbd> : ターゲット解除</div>
         </div>
     </div>
 
+    <!-- Dynamic Texts -->
+    <div id="name-tags"></div>
+    <div id="sys-msg" class="sys-message-overlay"></div>
+
 <script>
 // ==========================================
-// MMO Logic & 3D Engine Setup
+// PC MMO Logic & Engine (Full Graphics)
 // ==========================================
 
-// Global Game State
 const GAME = {
-    player: { level: 1, exp: 0, expToNextLevel: 100, hp: 500, maxHp: 500, mp: 100, maxMp: 100, lives: 3, maxLives: 3 },
+    player: { level: 1, exp: 0, expToNextLevel: 50, hp: 1000, maxHp: 1000, mp: 100, maxMp: 100, lives: 3, speed: 12, isInvulnerable: false },
     isGameOver: false,
     target: null,
-    entities: [], // NPCs, Monsters
+    entities: [],
+    cameraAngles: { theta: Math.PI, phi: Math.PI / 2.5, radius: 20 },
+    cooldowns: { 1: false, 2: false, 3: false },
     keys: { w: false, a: false, s: false, d: false },
-    isDragging: false,
-    previousMousePosition: { x: 0, y: 0 },
-    cameraAngles: { theta: Math.PI, phi: Math.PI / 2.5, radius: 15 },
-    cooldowns: { 1: false, 2: false, 3: false }
+    autoBattle: false,
+    inventory: { crystals: 0 },
+    overload: { current: 0, max: 100, isReady: false }
 };
 
-// Three.js Core Variables
-let scene, camera, renderer, clock;
-let playerMesh;
-const nameTagsContainer = document.getElementById('name-tags');
+let scene, camera, renderer, clock, playerMesh;
+let playerParts = {};
 
-// Initialize Engine
 function init() {
-    const canvas = document.getElementById('game-canvas');
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    try {
+        const canvas = document.getElementById('game-canvas');
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.outputEncoding = THREE.sRGBEncoding;
 
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a2530); // Darker, realistic sky
-    scene.fog = new THREE.FogExp2(0x1a2530, 0.015);
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb);
+        scene.fog = new THREE.FogExp2(0x87ceeb, 0.015);
 
-    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-    
-    clock = new THREE.Clock();
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
+        camera.position.set(0, 15, 20);
+        camera.lookAt(0, 0, 0);
 
-    setupLighting();
-    setupEnvironment();
-    setupPlayer();
-    spawnEntities();
-    
-    // Event Listeners
-    window.addEventListener('resize', onWindowResize);
-    document.addEventListener('keydown', (e) => updateKey(e.key.toLowerCase(), true));
-    document.addEventListener('keyup', (e) => updateKey(e.key.toLowerCase(), false));
-    
-    // Camera Mouse Controls (Right Click to orbit)
-    canvas.addEventListener('mousedown', (e) => {
-        if (e.button === 2 || e.button === 0) { // Right or Left click drag for camera
-            GAME.isDragging = true;
-            GAME.previousMousePosition = { x: e.offsetX, y: e.offsetY };
-        }
-    });
-    window.addEventListener('mouseup', () => GAME.isDragging = false);
-    window.addEventListener('mousemove', onMouseMove);
-    canvas.addEventListener('contextmenu', e => e.preventDefault()); // Prevent right click menu
+        clock = new THREE.Clock();
 
-    // Targeting (Left Click)
-    canvas.addEventListener('click', onMouseClick);
+        setupLighting();
+        setupEnvironment();
+        setupPlayer();
+        spawnEntities();
+        setupPCControls();
 
-    // Chat
-    document.getElementById('chat-input').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter' && this.value.trim() !== '') {
-            addChatMessage('プレイヤー', this.value.trim(), 'msg-say');
-            this.value = '';
-        }
-    });
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
 
-    // Action Bar Keys
-    document.addEventListener('keydown', (e) => {
-        if (e.key >= '1' && e.key <= '3') castSkill(parseInt(e.key));
-        if (e.key === 'Escape') setTarget(null); // Clear target
-    });
+        // Chat Input Event
+        document.getElementById('chat-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && this.value.trim() !== '') {
+                logMsg('Hero', this.value.trim(), 'msg-say');
+                this.value = '';
+                // unfocus to return control to game
+                this.blur();
+            }
+        });
 
-    // Start Loop
-    addChatMessage('System', 'クリスタルの世界へようこそ！', 'msg-sys');
-    addChatMessage('System', 'WASDで移動、右ドラッグで視点変更、赤いスライムをクリックでターゲット。', 'msg-sys');
-    
-    // Hide Loading
-    setTimeout(() => {
-        const loader = document.getElementById('loading');
+        const loader = document.getElementById('loading-screen');
         loader.style.opacity = '0';
-        setTimeout(() => loader.style.display = 'none', 1000);
-    }, 1500);
+        setTimeout(() => loader.style.display = 'none', 500);
 
-    animate();
+        logMsg('System', 'PC版クリスタルオデッセイへようこそ！', 'msg-sys');
+        showCenterMessage("START QUEST");
+
+        animate();
+    } catch (e) {
+        console.error(e);
+        document.getElementById('loading-screen').innerText = "WebGL Error: 実行環境をサポートしていません。";
+    }
 }
 
-// Lighting
 function setupLighting() {
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
-    hemiLight.position.set(0, 200, 0);
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
     scene.add(hemiLight);
-
-    const dirLight = new THREE.DirectionalLight(0xffeedd, 1.2);
-    dirLight.position.set(50, 100, 50);
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 2048;
-    dirLight.shadow.mapSize.height = 2048;
-    dirLight.shadow.camera.top = 100;
-    dirLight.shadow.camera.bottom = -100;
-    dirLight.shadow.camera.left = -100;
-    dirLight.shadow.camera.right = 100;
-    dirLight.shadow.bias = -0.0005;
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    dirLight.position.set(20, 50, 20);
     scene.add(dirLight);
 }
 
-// Environment (Ground, Trees, Crystals)
+function getTerrainHeight(x, z) {
+    return Math.sin(x * 0.1) * Math.cos(-z * 0.1) * 2.0;
+}
+
 function setupEnvironment() {
-    // Grass plane with procedural terrain
-    const groundGeo = new THREE.PlaneGeometry(400, 400, 64, 64);
-    
-    // Add slight noise to ground vertices for realistic terrain
+    const groundGeo = new THREE.PlaneGeometry(300, 300, 32, 32);
     const pos = groundGeo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
-        const x = pos.getX(i);
-        const y = pos.getY(i);
-        const z = Math.sin(x * 0.1) * Math.cos(y * 0.1) * 1.5 + Math.sin(x * 0.05) * 2.0;
-        pos.setZ(i, z);
+        const x = pos.getX(i), y = pos.getY(i);
+        pos.setZ(i, getTerrainHeight(x, y));
     }
     groundGeo.computeVertexNormals();
-
-    const groundMat = new THREE.MeshStandardMaterial({ 
-        color: 0x2d4c1e, 
-        roughness: 0.9,
-        metalness: 0.1,
-        flatShading: true
-    });
+    const groundMat = new THREE.MeshStandardMaterial({ color: 0x1c3315, roughness: 1.0, flatShading: true });
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
     scene.add(ground);
 
-    // Decor (Trees & Crystals)
-    const treeGeo = new THREE.ConeGeometry(2.5, 9, 7);
-    const treeMat = new THREE.MeshStandardMaterial({ color: 0x1f4d25, roughness: 0.8, flatShading: true });
-    const trunkGeo = new THREE.CylinderGeometry(0.6, 0.8, 3);
-    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.9 });
-
-    // Realistic Crystal Material
+    const treeGeo = new THREE.ConeGeometry(2, 7, 5);
+    const treeMat = new THREE.MeshStandardMaterial({ color: 0x153b1b, flatShading: true });
     const crystalGeo = new THREE.OctahedronGeometry(1.5, 0);
-    const crystalMat = new THREE.MeshPhysicalMaterial({
-        color: 0x00ffff,
-        metalness: 0.9,
-        roughness: 0.1,
-        transmission: 0.9, // glass-like
-        ior: 1.5,
-        emissive: 0x004466,
-        emissiveIntensity: 0.5,
-        transparent: true
-    });
+    const crystalMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: false, opacity: 0.8, transparent: true });
 
-    for (let i = 0; i < 80; i++) {
-        const x = (Math.random() - 0.5) * 300;
-        const z = (Math.random() - 0.5) * 300;
-        if (Math.abs(x) < 15 && Math.abs(z) < 15) continue; // Keep center clear
+    for (let i = 0; i < 60; i++) {
+        const x = (Math.random() - 0.5) * 250;
+        const z = (Math.random() - 0.5) * 250;
+        if (Math.abs(x) < 20 && Math.abs(z) < 20) continue;
+        const y = getTerrainHeight(x, z);
 
-        // Get ground height at (x, z) roughly
-        const y = Math.sin(x * 0.1) * Math.cos(-z * 0.1) * 1.5 + Math.sin(x * 0.05) * 2.0;
-
-        if (Math.random() > 0.25) {
-            // Tree
-            const tree = new THREE.Group();
-            const leaves = new THREE.Mesh(treeGeo, treeMat);
-            leaves.position.y = 5.5;
-            leaves.castShadow = true;
-            leaves.receiveShadow = true;
-            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-            trunk.position.y = 1.5;
-            trunk.castShadow = true;
-            tree.add(leaves); tree.add(trunk);
-            tree.position.set(x, y, z);
-            
-            // Random rotation and scale for variety
-            tree.rotation.y = Math.random() * Math.PI;
-            const scale = 0.8 + Math.random() * 0.5;
-            tree.scale.set(scale, scale, scale);
-            
+        if (Math.random() > 0.3) {
+            const tree = new THREE.Mesh(treeGeo, treeMat);
+            tree.position.set(x, y + 3.5, z);
             scene.add(tree);
         } else {
-            // Crystal
             const crystal = new THREE.Mesh(crystalGeo, crystalMat);
             crystal.position.set(x, y + 2, z);
-            crystal.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-            crystal.castShadow = true;
-            
-            // Add a small point light to make crystals glow realistically
-            const light = new THREE.PointLight(0x00ffff, 0.5, 15);
-            crystal.add(light);
-            
             scene.add(crystal);
         }
     }
 }
 
-// Player Character setup
 function setupPlayer() {
     playerMesh = new THREE.Group();
     
-    // Body (Sleeker)
-    const bodyGeo = new THREE.CylinderGeometry(0.4, 0.3, 2.2, 16);
-    const bodyMat = new THREE.MeshStandardMaterial({ 
-        color: 0x1f3a52, 
-        roughness: 0.4, 
-        metalness: 0.6 
-    });
-    const body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 1.1;
-    body.castShadow = true;
-    body.receiveShadow = true;
-    
-    // Head (Smaller, better proportion)
-    const headGeo = new THREE.SphereGeometry(0.35, 16, 16);
-    const headMat = new THREE.MeshStandardMaterial({ color: 0xffe0bd, roughness: 0.5 });
-    const head = new THREE.Mesh(headGeo, headMat);
-    head.position.y = 2.5;
-    head.castShadow = true;
+    // 各パーツのマテリアル
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0xffe0bd });
+    const hairMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50 });
+    const shirtMat = new THREE.MeshStandardMaterial({ color: 0x3498db });
+    const pantsMat = new THREE.MeshStandardMaterial({ color: 0x2980b9 });
+    const ironMat = new THREE.MeshStandardMaterial({ color: 0xe0e0e0 });
 
-    // Sword (Metallic)
-    const swordGeo = new THREE.BoxGeometry(0.08, 1.8, 0.2);
-    const swordMat = new THREE.MeshStandardMaterial({ 
-        color: 0xe0e0e0,
-        metalness: 0.9,
-        roughness: 0.1
-    });
-    const sword = new THREE.Mesh(swordGeo, swordMat);
-    sword.position.set(0, 1.5, -0.45);
-    sword.rotation.z = Math.PI / 6;
-    sword.castShadow = true;
+    // 頭と髪
+    const headGroup = new THREE.Group();
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), skinMat);
+    const hair = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.2, 0.75), hairMat);
+    hair.position.y = 0.3;
+    headGroup.add(head, hair);
+    headGroup.position.y = 2.2;
 
-    playerMesh.add(body);
-    playerMesh.add(head);
-    playerMesh.add(sword);
+    // 胴体
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.0, 0.4), shirtMat);
+    body.position.y = 1.3;
+
+    // 腕のジオメトリ
+    const armGeo = new THREE.BoxGeometry(0.2, 0.8, 0.2);
     
+    // 右腕
+    const rightArm = new THREE.Group();
+    const rightArmMesh = new THREE.Mesh(armGeo, skinMat);
+    rightArmMesh.position.y = -0.3;
+    rightArm.add(rightArmMesh);
+    rightArm.position.set(0.45, 1.7, 0);
+    
+    // 左腕
+    const leftArm = new THREE.Group();
+    const leftArmMesh = new THREE.Mesh(armGeo, skinMat);
+    leftArmMesh.position.y = -0.3;
+    leftArm.add(leftArmMesh);
+    leftArm.position.set(-0.45, 1.7, 0);
+
+    // 武器 (右手に装備)
+    const weapon = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.5, 0.2), ironMat);
+    weapon.position.set(0, -0.6, 0.4);
+    weapon.rotation.x = Math.PI / 2;
+    rightArm.add(weapon);
+
+    // 脚のジオメトリ
+    const legGeo = new THREE.BoxGeometry(0.25, 0.8, 0.25);
+    
+    // 右脚
+    const rightLeg = new THREE.Group();
+    const rightLegMesh = new THREE.Mesh(legGeo, pantsMat);
+    rightLegMesh.position.y = -0.4;
+    rightLeg.add(rightLegMesh);
+    rightLeg.position.set(0.2, 0.8, 0);
+
+    // 左脚
+    const leftLeg = new THREE.Group();
+    const leftLegMesh = new THREE.Mesh(legGeo, pantsMat);
+    leftLegMesh.position.y = -0.4;
+    leftLeg.add(leftLegMesh);
+    leftLeg.position.set(-0.2, 0.8, 0);
+
+    // プレイヤーモデルにすべて追加
+    playerMesh.add(headGroup, body, rightArm, leftArm, rightLeg, leftLeg);
+    playerMesh.position.set(0, getTerrainHeight(0,0), 0);
+    
+    // アニメーション用に参照を保存
+    playerParts = { headGroup, body, rightArm, leftArm, rightLeg, leftLeg };
+
     scene.add(playerMesh);
+    updateUI();
 }
 
-// Spawn NPCs and Monsters
-function spawnEntities() {
-    // NPCs (Other Players)
-    for (let i = 0; i < 5; i++) {
-        const npcName = `NPC${i + 1}`;
-        const npcGroup = new THREE.Group();
-        const mat = new THREE.MeshStandardMaterial({ 
-            color: Math.random() * 0xffffff,
-            roughness: 0.4,
-            metalness: 0.5
-        });
-        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.3, 2.2, 16), mat);
-        body.position.y = 1.1; body.castShadow = true; body.receiveShadow = true;
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.35), new THREE.MeshStandardMaterial({ color: 0xffe0bd }));
-        head.position.y = 2.5; head.castShadow = true;
-        npcGroup.add(body); npcGroup.add(head);
-        
-        npcGroup.position.set((Math.random() - 0.5) * 80, 0, (Math.random() - 0.5) * 80);
-        scene.add(npcGroup);
-        
-        GAME.entities.push({
-            mesh: npcGroup,
-            type: 'npc',
-            name: npcName + ' (Player)',
-            targetPos: npcGroup.position.clone(),
-            speed: 3
-        });
-        createNameTag(npcGroup, npcName, 'npc');
-    }
-
-    // Monsters (Slimes) - Realistic Jelly Material
-    const slimeGeo = new THREE.SphereGeometry(0.8, 32, 32);
-    slimeGeo.scale(1, 0.7, 1);
-    const slimeMat = new THREE.MeshPhysicalMaterial({ 
-        color: 0xff0033, 
-        metalness: 0.1,
-        roughness: 0.05,
-        transmission: 0.8, // Glass/Jelly like
-        ior: 1.2,
-        thickness: 1.0,
-        emissive: 0x330000
+function flashEnemy(ent) {
+    const meshes = ent.mesh.type === 'Group' ? ent.mesh.children : [ent.mesh];
+    meshes.forEach(m => {
+        if (m.material) {
+            const origColor = m.material.color.getHex();
+            m.material.color.setHex(0xffffff);
+            setTimeout(() => { if(m.material) m.material.color.setHex(origColor); }, 100);
+        }
     });
+}
+
+function spawnEntities() {
+    const slimeGeo = new THREE.SphereGeometry(1, 16, 16);
+    const slimeMat = new THREE.MeshStandardMaterial({ color: 0xff0055, transparent: true, opacity: 0.9, roughness: 0.1 });
     
-    for (let i = 0; i < 15; i++) {
-        const slime = new THREE.Mesh(slimeGeo, slimeMat);
-        const x = (Math.random() - 0.5) * 100;
-        const z = (Math.random() - 0.5) * 100;
-        // Adjust for terrain height roughly
-        const y = Math.sin(x * 0.1) * Math.cos(-z * 0.1) * 1.5 + Math.sin(x * 0.05) * 2.0 + 0.6;
-        
-        slime.position.set(x, y, z);
-        slime.castShadow = true;
-        slime.receiveShadow = true;
-        scene.add(slime);
-        
-        const entityData = {
-            mesh: slime,
-            type: 'monster',
-            name: 'ブラッドスライム Lv.1',
-            hp: 200, maxHp: 200,
-            baseY: y,
-            jumpPhase: Math.random() * Math.PI * 2,
-            expVal: 50,
-            speed: 4,
-            damage: 15,
-            aggroRange: 25,
-            attackRange: 2.5,
-            attackCooldown: 2.0,
-            lastAttackTime: 0
-        };
-        // Add userData for raycasting
-        slime.userData = entityData;
-        GAME.entities.push(entityData);
-        createNameTag(slime, 'ブラッドスライム', 'monster');
+    for (let i = 0; i < 30; i++) {
+        const rand = Math.random();
+        const x = (Math.random() - 0.5) * 200;
+        const z = (Math.random() - 0.5) * 200;
+        const y = getTerrainHeight(x, z);
+
+        if (rand < 0.5) {
+            createSlime(x, z, y + 1, slimeGeo, slimeMat.clone());
+        } else if (rand < 0.8) {
+            createBat(x, z, y + 3);
+        } else {
+            createGolem(x, z, y + 1);
+        }
     }
+}
+
+function createSlime(x, z, y, geo, mat) {
+    const slime = new THREE.Mesh(geo, mat);
+    slime.position.set(x, y, z);
+    scene.add(slime);
+    
+    const data = {
+        mesh: slime, type: 'monster', subType: 'slime', name: 'クリスタルスライム',
+        hp: 300, maxHp: 300, isDead: false, speed: 3 + Math.random()*2,
+        attackRange: 2.5, damage: 20, lastAttack: 0, baseY: y, phase: Math.random() * 10
+    };
+    slime.userData = data;
+    GAME.entities.push(data);
+    createNameTag(slime, 'Lv.1 スライム', 'monster');
+}
+
+function createBat(x, z, y) {
+    const batGroup = new THREE.Group();
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x34495e });
+    const wingMat = new THREE.MeshStandardMaterial({ color: 0x9b59b6, side: THREE.DoubleSide });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), bodyMat);
+    const wingGeo = new THREE.PlaneGeometry(1.5, 0.8);
+    const leftWing = new THREE.Mesh(wingGeo, wingMat);
+    leftWing.position.set(-0.8, 0, 0);
+    const rightWing = new THREE.Mesh(wingGeo, wingMat);
+    rightWing.position.set(0.8, 0, 0);
+
+    batGroup.add(body, leftWing, rightWing);
+    batGroup.position.set(x, y, z);
+    scene.add(batGroup);
+
+    const data = {
+        mesh: batGroup, type: 'monster', subType: 'bat', name: 'ファントムバット',
+        hp: 150, maxHp: 150, isDead: false, speed: 6 + Math.random()*2,
+        attackRange: 2.0, damage: 15, lastAttack: 0, baseY: y, phase: Math.random() * 10,
+        parts: { leftWing, rightWing }
+    };
+    batGroup.userData = data;
+    GAME.entities.push(data);
+    createNameTag(batGroup, 'Lv.3 バット', 'monster');
+}
+
+function createGolem(x, z, y) {
+    const golemGroup = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: 0x7f8c8d, roughness: 0.9 });
+    
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.6, 1.2), mat);
+    body.position.y = 0.8;
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), mat);
+    head.position.y = 2.0;
+    const armGeo = new THREE.BoxGeometry(0.6, 1.5, 0.6);
+    const leftArm = new THREE.Mesh(armGeo, mat);
+    leftArm.position.set(-1.0, 0.8, 0);
+    const rightArm = new THREE.Mesh(armGeo, mat);
+    rightArm.position.set(1.0, 0.8, 0);
+    
+    golemGroup.add(body, head, leftArm, rightArm);
+    golemGroup.position.set(x, y, z);
+    scene.add(golemGroup);
+
+    const data = {
+        mesh: golemGroup, type: 'monster', subType: 'golem', name: 'ロックゴーレム',
+        hp: 800, maxHp: 800, isDead: false, speed: 1.5 + Math.random(),
+        attackRange: 3.5, damage: 40, lastAttack: 0, baseY: y, phase: Math.random() * 10,
+        parts: { leftArm, rightArm }
+    };
+    golemGroup.userData = data;
+    GAME.entities.push(data);
+    createNameTag(golemGroup, 'Lv.5 ゴーレム', 'monster');
 }
 
 function createNameTag(mesh, text, type) {
     const el = document.createElement('div');
-    el.className = `name-tag ${type}`;
-    el.innerText = text;
-    nameTagsContainer.appendChild(el);
+    el.className = `name-tag`; el.innerText = text; el.style.color = (type==='monster') ? '#ff5252' : '#81D4FA';
+    document.getElementById('name-tags').appendChild(el);
     mesh.userData.nameTag = el;
 }
 
-// Input Handling
-function updateKey(key, isDown) {
-    if (GAME.keys.hasOwnProperty(key)) GAME.keys[key] = isDown;
-}
+// ==========================================
+// PC Input Handlers (No Mobile Events)
+// ==========================================
+function setupPCControls() {
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let isRightMouseDown = false;
 
-function onMouseMove(e) {
-    if (!GAME.isDragging) return;
-    const deltaX = e.offsetX - GAME.previousMousePosition.x;
-    const deltaY = e.offsetY - GAME.previousMousePosition.y;
-    
-    // Sensitivity
-    GAME.cameraAngles.theta -= deltaX * 0.01;
-    GAME.cameraAngles.phi += deltaY * 0.01;
-    
-    // Clamp Phi (vertical angle)
-    GAME.cameraAngles.phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.1, GAME.cameraAngles.phi));
-    
-    GAME.previousMousePosition = { x: e.offsetX, y: e.offsetY };
-}
+    // Mouse Events for Camera and Targeting
+    window.addEventListener('mousedown', e => {
+        // UI上でのクリックはゲームの世界には反映させない
+        if (e.target.closest('.panel')) return;
 
-// Targeting Raycast
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-
-function onMouseClick(e) {
-    // Only target if not clicking on UI
-    if (e.target.closest('.panel')) return;
-
-    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-    
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(scene.children, true);
-    
-    let clickedEntity = null;
-    for (let i = 0; i < intersects.length; i++) {
-        let obj = intersects[i].object;
-        // Traverse up to find userData if it's a group
-        while (obj && !obj.userData.type) obj = obj.parent;
-        
-        if (obj && obj.userData.type === 'monster') {
-            clickedEntity = obj.userData;
-            break;
+        if (e.button === 2) {
+            isRightMouseDown = true;
+            document.body.style.cursor = 'grabbing';
+        } else if (e.button === 0) {
+            // Left click Raycast targeting
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children, true);
+            
+            let clickedEntity = null;
+            for (let i = 0; i < intersects.length; i++) {
+                let obj = intersects[i].object;
+                while (obj && !obj.userData.type) obj = obj.parent;
+                if (obj && obj.userData.type === 'monster' && !obj.userData.isDead) {
+                    clickedEntity = obj.userData;
+                    break;
+                }
+            }
+            setTarget(clickedEntity);
         }
-    }
+    });
+
+    window.addEventListener('mousemove', e => {
+        if (isRightMouseDown) {
+            GAME.cameraAngles.theta -= e.movementX * 0.008;
+            GAME.cameraAngles.phi += e.movementY * 0.008;
+            GAME.cameraAngles.phi = Math.max(0.1, Math.min(Math.PI/2 - 0.1, GAME.cameraAngles.phi));
+        }
+    });
+
+    window.addEventListener('mouseup', e => {
+        if (e.button === 2) {
+            isRightMouseDown = false;
+            document.body.style.cursor = 'default';
+        }
+    });
     
-    setTarget(clickedEntity);
+    // Prevent Context Menu on right click
+    window.addEventListener('contextmenu', e => {
+        if (!e.target.closest('input')) e.preventDefault();
+    });
+
+    // Keyboard Events
+    window.addEventListener('keydown', e => {
+        // チャット入力中は無視
+        if (document.activeElement.id === 'chat-input') return;
+
+        const key = e.key.toLowerCase();
+        if (GAME.keys.hasOwnProperty(key)) GAME.keys[key] = true;
+        
+        // Skill Shortcuts
+        if (key === '1') castSkill(1);
+        if (key === '2') castSkill(2);
+        if (key === '3') castSkill(3);
+        if (key === 't') smartTarget();
+        if (key === 'q') toggleAuto();
+        if (key === 'r') triggerOverload();
+        if (key === 'escape') setTarget(null);
+    });
+    
+    window.addEventListener('keyup', e => {
+        const key = e.key.toLowerCase();
+        if (GAME.keys.hasOwnProperty(key)) GAME.keys[key] = false;
+    });
+}
+
+// ==========================================
+// Gameplay Mechanics
+// ==========================================
+
+function toggleAuto() {
+    GAME.autoBattle = !GAME.autoBattle;
+    const btn = document.getElementById('btn-auto-pc');
+    if (GAME.autoBattle) {
+        btn.classList.add('active');
+        logMsg('System', 'オートバトル ON', 'msg-sys');
+    } else {
+        btn.classList.remove('active');
+        logMsg('System', 'オートバトル OFF', 'msg-sys');
+    }
+}
+
+function smartTarget() {
+    let closest = null; let minDist = Infinity;
+    GAME.entities.forEach(ent => {
+        if(ent.type === 'monster' && !ent.isDead) {
+            const d = playerMesh.position.distanceTo(ent.mesh.position);
+            if(d < minDist) { minDist = d; closest = ent; }
+        }
+    });
+    setTarget(closest);
+    if(closest) {
+        flashEnemy(closest);
+    }
 }
 
 function setTarget(entity) {
@@ -699,491 +648,345 @@ function setTarget(entity) {
     if (entity) {
         tf.classList.add('active');
         document.getElementById('target-name').innerText = entity.name;
-        updateTargetHP();
+        updateTargetUI();
     } else {
         tf.classList.remove('active');
     }
 }
 
-function updateTargetHP() {
-    if (!GAME.target) return;
-    const pct = Math.max(0, (GAME.target.hp / GAME.target.maxHp) * 100);
-    document.getElementById('target-hp-fill').style.width = pct + '%';
-    document.getElementById('target-hp-text').innerText = `${Math.floor(GAME.target.hp)} / ${GAME.target.maxHp}`;
-}
-
-// Combat / Skills
-function castSkill(skillId) {
-    if (GAME.cooldowns[skillId]) return; // On cooldown
-    if (GAME.player.hp <= 0 || GAME.isGameOver) return; // Prevent attacking while dead
-
-    // Require target for skill 1 and 2
-    if (!GAME.target && (skillId === 1 || skillId === 2)) {
-        addChatMessage('System', 'ターゲットが必要です。', 'msg-sys');
-        return;
-    }
-
-    // Distance check
-    if (GAME.target) {
-        const dist = playerMesh.position.distanceTo(GAME.target.mesh.position);
-        if (skillId === 1 && dist > 5) { addChatMessage('System', '遠すぎます！', 'msg-sys'); return; }
-        if (skillId === 2 && dist > 20) { addChatMessage('System', '遠すぎます！', 'msg-sys'); return; }
-    }
-
-    // Execute Skill
-    let name = "", damage = 0, cost = 0, cd = 0;
+function castSkill(id) {
+    if (GAME.cooldowns[id] || GAME.isGameOver) return;
+    if(!GAME.target && (id===1 || id===2)) smartTarget(); 
     
-    if (skillId === 1) { // Melee
-        name = "通常攻撃"; damage = 50 + Math.random() * 20; cd = 1.5;
-        visualizeMelee();
-    } else if (skillId === 2) { // Fire
-        name = "ファイア"; damage = 150 + Math.random() * 50; cost = 20; cd = 2.5;
-        if (GAME.player.mp < cost) { addChatMessage('System', 'MPが足りません。', 'msg-sys'); return; }
-        visualizeFire(GAME.target.mesh);
-    } else if (skillId === 3) { // Heal
-        name = "ケアル"; cost = 30; cd = 3.0;
-        if (GAME.player.mp < cost) { addChatMessage('System', 'MPが足りません。', 'msg-sys'); return; }
-        const heal = 200 + Math.random() * 50;
-        GAME.player.hp = Math.min(GAME.player.maxHp, GAME.player.hp + heal);
-        updatePlayerUI();
-        visualizeHeal();
-        showFloatingText(playerMesh.position, `+${Math.floor(heal)}`, '#4CAF50');
-        addChatMessage('Combat', `プレイヤーの${name} -> 自身に ${Math.floor(heal)} の回復！`, 'msg-combat');
-    }
+    let name="", dmg=0, cost=0, cd=0;
 
-    // Apply resource cost & Damage
-    if (cost > 0) { GAME.player.mp -= cost; updatePlayerUI(); }
-    
-    if (damage > 0 && GAME.target) {
-        GAME.target.hp -= damage;
-        updateTargetHP();
-        showFloatingText(GAME.target.mesh.position, Math.floor(damage), '#ffeb3b');
-        addChatMessage('Combat', `プレイヤーの${name} -> ${GAME.target.name}に ${Math.floor(damage)} のダメージ！`, 'msg-combat');
+    if (id === 1) { // Melee
+        if(GAME.target && playerMesh.position.distanceTo(GAME.target.mesh.position) > 4) return;
+        name="Attack"; dmg = 80 + Math.random()*40; cd = 1.0;
         
-        // Target Death
-        if (GAME.target.hp <= 0) {
-            const expGained = GAME.target.expVal || 50;
-            addChatMessage('System', `${GAME.target.name}を倒した！ 経験値 ${expGained} 獲得。`, 'msg-sys');
-            gainExp(expGained);
-            // Hide mesh, remove tag
-            GAME.target.mesh.visible = false;
-            if(GAME.target.mesh.userData.nameTag) GAME.target.mesh.userData.nameTag.style.display = 'none';
-            setTarget(null);
-        }
+        // 剣を振り下ろすアニメーション
+        playerParts.rightArm.rotation.x = -Math.PI / 2;
+        playerMesh.rotation.y += 0.5; 
+        setTimeout(() => {
+            playerParts.rightArm.rotation.x = 0;
+            playerMesh.rotation.y -= 0.5;
+        }, 150); 
+    } else if (id === 2) { // Fire
+        if(GAME.target && playerMesh.position.distanceTo(GAME.target.mesh.position) > 15) return;
+        name="Fireball"; dmg = 200 + Math.random()*50; cost = 20; cd = 3.0;
+        if(GAME.player.mp < cost) { logMsg('System', 'MPが足りません', 'msg-sys'); return; }
+        if(GAME.target) createProjectile(GAME.target.mesh.position, 0xff5500);
+    } else if (id === 3) { // Heal
+        name="Heal"; cost = 30; cd = 5.0;
+        if(GAME.player.mp < cost) { logMsg('System', 'MPが足りません', 'msg-sys'); return; }
+        const heal = 300; GAME.player.hp = Math.min(GAME.player.maxHp, GAME.player.hp + heal);
+        createAura(0x00ff00); floatText(`+${heal}`, '#00ff00', playerMesh.position);
     }
 
-    // Start Cooldown UI
-    startCooldown(skillId, cd);
-}
-
-function startCooldown(id, seconds) {
+    if(cost > 0) GAME.player.mp -= cost;
+    if(dmg > 0 && GAME.target) {
+        GAME.target.hp -= dmg;
+        flashEnemy(GAME.target);
+        floatText(Math.floor(dmg), '#ffeb3b', GAME.target.mesh.position);
+        addOverload(5);
+        if(GAME.target.hp <= 0 && !GAME.target.isDead) handleMonsterDeath(GAME.target);
+        updateTargetUI();
+    }
+    updateUI();
+    
+    // UI Cooldown Animation
     GAME.cooldowns[id] = true;
-    const overlay = document.getElementById(`cd-${id}`);
-    overlay.style.transition = 'none';
-    overlay.style.height = '100%';
+    const cdEl = document.getElementById(`cd-${id}`);
+    cdEl.style.transition = 'none'; cdEl.style.height = '100%';
+    setTimeout(() => { cdEl.style.transition = `height ${cd}s linear`; cdEl.style.height = '0%'; }, 20);
+    setTimeout(() => GAME.cooldowns[id] = false, cd * 1000);
+}
+
+function handleMonsterDeath(entity) {
+    entity.isDead = true;
+    entity.mesh.visible = false;
+    if(entity.mesh.userData.nameTag) entity.mesh.userData.nameTag.style.display = 'none';
+    
+    gainExp(30);
+    GAME.inventory.crystals += Math.floor(Math.random()*3) + 1;
+    document.getElementById('crystal-count').innerText = GAME.inventory.crystals;
+    addOverload(15);
+
+    if(GAME.target === entity) setTarget(null);
     
     setTimeout(() => {
-        overlay.style.transition = `height ${seconds}s linear`;
-        overlay.style.height = '0%';
-    }, 50);
+        entity.hp = entity.maxHp; entity.isDead = false; entity.mesh.visible = true;
+        const nx = (Math.random()-0.5)*200;
+        const nz = (Math.random()-0.5)*200;
+        let baseHeight = getTerrainHeight(nx, nz);
+        if (entity.subType === 'bat') baseHeight += 3;
+        else baseHeight += 1;
 
-    setTimeout(() => {
-        GAME.cooldowns[id] = false;
-    }, seconds * 1000);
+        entity.mesh.position.set(nx, baseHeight, nz);
+        entity.baseY = baseHeight;
+        if(entity.mesh.userData.nameTag) entity.mesh.userData.nameTag.style.display = 'block';
+    }, 3000);
 }
 
-// Visual Effects (Fake particles using brief meshes)
-function visualizeMelee() {
-    // Quick player rotation shake
-    const origY = playerMesh.rotation.y;
-    playerMesh.rotation.y += 0.5;
-    setTimeout(() => playerMesh.rotation.y = origY, 150);
-}
-
-function visualizeFire(targetMesh) {
-    const geo = new THREE.SphereGeometry(1.5, 8, 8);
-    const mat = new THREE.MeshBasicMaterial({ color: 0xff5722, transparent: true, opacity: 0.8 });
-    const fireball = new THREE.Mesh(geo, mat);
-    fireball.position.copy(targetMesh.position);
-    scene.add(fireball);
+function addOverload(amt) {
+    if(GAME.overload.isReady) return;
+    GAME.overload.current = Math.min(GAME.overload.max, GAME.overload.current + amt);
+    document.getElementById('overload-fill').style.width = `${(GAME.overload.current/GAME.overload.max)*100}%`;
     
-    let scale = 1;
-    const int = setInterval(() => {
-        scale += 0.2;
-        fireball.scale.set(scale, scale, scale);
-        fireball.material.opacity -= 0.1;
-        if(fireball.material.opacity <= 0) {
-            scene.remove(fireball);
-            clearInterval(int);
-        }
-    }, 30);
-}
-
-function visualizeHeal() {
-    const geo = new THREE.CylinderGeometry(2, 2, 4, 16, 1, true);
-    const mat = new THREE.MeshBasicMaterial({ color: 0x4CAF50, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
-    const aura = new THREE.Mesh(geo, mat);
-    aura.position.copy(playerMesh.position);
-    scene.add(aura);
-    
-    let y = 0;
-    const int = setInterval(() => {
-        y += 0.1;
-        aura.position.y += 0.1;
-        aura.material.opacity -= 0.05;
-        if(aura.material.opacity <= 0) {
-            scene.remove(aura);
-            clearInterval(int);
-        }
-    }, 30);
-}
-
-function visualizeLevelUp() {
-    const geo = new THREE.CylinderGeometry(2, 2, 6, 16, 1, true);
-    const mat = new THREE.MeshBasicMaterial({ color: 0xFFD700, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
-    const aura = new THREE.Mesh(geo, mat);
-    aura.position.copy(playerMesh.position);
-    scene.add(aura);
-    
-    showFloatingText(playerMesh.position, "LEVEL UP!", '#FFD700');
-    
-    let scale = 1;
-    const int = setInterval(() => {
-        scale += 0.05;
-        aura.scale.set(scale, 1, scale);
-        aura.position.y += 0.1;
-        aura.material.opacity -= 0.05;
-        if(aura.material.opacity <= 0) {
-            scene.remove(aura);
-            clearInterval(int);
-        }
-    }, 30);
-}
-
-function gainExp(amount) {
-    GAME.player.exp += amount;
-    while (GAME.player.exp >= GAME.player.expToNextLevel) {
-        levelUp();
+    if(GAME.overload.current >= GAME.overload.max) {
+        GAME.overload.isReady = true;
+        document.getElementById('btn-overload-pc').classList.add('ready');
+        showCenterMessage("OVERLOAD READY!");
     }
-    updatePlayerUI();
 }
 
-function levelUp() {
-    GAME.player.exp -= GAME.player.expToNextLevel;
-    GAME.player.level++;
-    GAME.player.expToNextLevel = Math.floor(GAME.player.expToNextLevel * 1.5);
+function triggerOverload() {
+    if(!GAME.overload.isReady) return;
+    GAME.overload.current = 0; GAME.overload.isReady = false;
+    document.getElementById('btn-overload-pc').classList.remove('ready');
+    document.getElementById('overload-fill').style.width = '0%';
     
-    // ステータス上昇
-    GAME.player.maxHp += 150;
-    GAME.player.maxMp += 50;
-    GAME.player.hp = GAME.player.maxHp;
-    GAME.player.mp = GAME.player.maxMp;
+    showCenterMessage("CRYSTAL OVERLOAD!", "#ff00ff");
+    createAura(0xff00ff, 10);
     
-    visualizeLevelUp();
-    addChatMessage('System', `レベルアップ！ Lv.${GAME.player.level} になった！`, 'msg-sys');
-}
-
-function monsterAttack(monster) {
-    if (GAME.player.hp <= 0 || GAME.isGameOver) return;
-
-    // ダメージ計算
-    const damage = monster.damage + Math.floor(Math.random() * 10);
-    GAME.player.hp -= damage;
-    
-    // UI表示
-    showFloatingText(playerMesh.position, `-${damage}`, '#ff5252');
-    addChatMessage('Combat', `${monster.name}の攻撃 -> プレイヤーに ${damage} のダメージ！`, 'msg-combat');
-
-    // 簡易的な攻撃アニメーション（少し前へ飛び出す）
-    const origPos = monster.mesh.position.clone();
-    const dir = playerMesh.position.clone().sub(monster.mesh.position);
-    dir.y = 0; dir.normalize();
-    monster.mesh.position.addScaledVector(dir, 1.5);
-    setTimeout(() => {
-        if (monster.mesh.visible) monster.mesh.position.copy(origPos);
-    }, 150);
-
-    // 死亡判定
-    if (GAME.player.hp <= 0) {
-        GAME.player.hp = 0;
-        GAME.player.lives--;
-        
-        if (GAME.player.lives > 0) {
-            addChatMessage('System', `力尽きてしまった... 残りライフ: ${GAME.player.lives}`, 'msg-sys');
-            
-            // 3秒後にリスポーン
-            setTimeout(() => {
-                if (GAME.isGameOver) return;
-                GAME.player.hp = GAME.player.maxHp;
-                GAME.player.mp = GAME.player.maxMp;
-                playerMesh.position.set(0, 0, 0); // 初期位置へ
-                addChatMessage('System', '拠点から復活しました。', 'msg-sys');
-                updatePlayerUI();
-            }, 3000);
-        } else {
-            addChatMessage('System', 'ゲームオーバー...', 'msg-sys');
-            GAME.isGameOver = true;
-            document.getElementById('game-over-screen').style.display = 'flex';
-        }
-    }
-    
-    updatePlayerUI();
-}
-
-function restartGame() {
-    // ステータスの初期化
-    GAME.player.lives = GAME.player.maxLives;
-    GAME.player.level = 1;
-    GAME.player.exp = 0;
-    GAME.player.expToNextLevel = 100;
-    GAME.player.maxHp = 500;
-    GAME.player.hp = 500;
-    GAME.player.maxMp = 100;
-    GAME.player.mp = 100;
-    GAME.isGameOver = false;
-
-    // プレイヤーの位置をリセット
-    playerMesh.position.set(0, 0, 0);
-    setTarget(null);
-
-    // 倒されたモンスターを復活させる
     GAME.entities.forEach(ent => {
-        if (ent.type === 'monster') {
-            ent.hp = ent.maxHp;
-            ent.mesh.visible = true;
-            if (ent.mesh.userData.nameTag) ent.mesh.userData.nameTag.style.display = 'block';
+        if(ent.type === 'monster' && !ent.isDead) {
+            const dist = playerMesh.position.distanceTo(ent.mesh.position);
+            if(dist < 40) {
+                createProjectile(ent.mesh.position, 0xff00ff);
+                ent.hp -= 1000;
+                floatText("999", '#ff00ff', ent.mesh.position);
+                if(ent.hp <= 0) handleMonsterDeath(ent);
+            }
         }
     });
-
-    // UIの更新
-    document.getElementById('game-over-screen').style.display = 'none';
-    addChatMessage('System', 'リトライしました。最初の状態からスタートします。', 'msg-sys');
-    updatePlayerUI();
 }
 
-function showFloatingText(pos3D, text, color) {
+function gainExp(amt) {
+    GAME.player.exp += amt;
+    if(GAME.player.exp >= GAME.player.expToNextLevel) {
+        GAME.player.level++; GAME.player.exp = 0;
+        GAME.player.expToNextLevel = Math.floor(GAME.player.expToNextLevel * 1.5);
+        GAME.player.maxHp += 200; GAME.player.hp = GAME.player.maxHp;
+        createAura(0xffff00); floatText("LEVEL UP!", "#ffff00", playerMesh.position);
+        logMsg('System', `Level Up! Lv.${GAME.player.level}`, 'msg-sys');
+    }
+    updateUI();
+}
+
+function updateUI() {
+    document.getElementById('level').innerText = `Lv.${GAME.player.level}`;
+    document.getElementById('hp-fill').style.width = `${(GAME.player.hp/GAME.player.maxHp)*100}%`;
+    document.getElementById('hp-text').innerText = `${Math.floor(GAME.player.hp)}/${GAME.player.maxHp}`;
+    document.getElementById('mp-fill').style.width = `${(GAME.player.mp/GAME.player.maxMp)*100}%`;
+    document.getElementById('exp-fill').style.width = `${(GAME.player.exp/GAME.player.expToNextLevel)*100}%`;
+    let h=""; for(let i=0;i<3;i++) h += (i<GAME.player.lives)?'❤️':'🖤';
+    document.getElementById('lives').innerText = h;
+}
+
+function updateTargetUI() {
+    if(!GAME.target) return;
+    document.getElementById('target-hp').style.width = `${Math.max(0, (GAME.target.hp/GAME.target.maxHp)*100)}%`;
+}
+
+function floatText(text, color, pos) {
     const el = document.createElement('div');
-    el.className = 'combat-text';
-    el.innerText = text;
-    el.style.color = color;
+    el.className = 'combat-text'; el.innerText = text; el.style.color = color;
     document.getElementById('ui-layer').appendChild(el);
-    
-    // Project 3D to 2D
-    const pos = pos3D.clone();
-    pos.y += 2; // Above head
-    pos.project(camera);
-    
-    const x = (pos.x * .5 + .5) * window.innerWidth;
-    const y = (pos.y * -.5 + .5) * window.innerHeight;
-    
-    el.style.left = `${x}px`;
-    el.style.top = `${y}px`;
-    
+    const v = new THREE.Vector3().copy(pos); v.y += 2; v.project(camera);
+    el.style.left = `${(v.x*.5+.5)*window.innerWidth}px`;
+    el.style.top = `${(v.y*-.5+.5)*window.innerHeight}px`;
     setTimeout(() => el.remove(), 1000);
 }
 
-// UI Updates
-function updatePlayerUI() {
-    const hpPct = (GAME.player.hp / GAME.player.maxHp) * 100;
-    const mpPct = (GAME.player.mp / GAME.player.maxMp) * 100;
-    const expPct = (GAME.player.exp / GAME.player.expToNextLevel) * 100;
-    
-    document.getElementById('player-hp-fill').style.width = hpPct + '%';
-    document.getElementById('player-hp-text').innerText = `${Math.floor(GAME.player.hp)} / ${GAME.player.maxHp}`;
-    document.getElementById('player-mp-fill').style.width = mpPct + '%';
-    document.getElementById('player-mp-text').innerText = `${Math.floor(GAME.player.mp)} / ${GAME.player.maxMp}`;
-    
-    const expFill = document.getElementById('player-exp-fill');
-    if (expFill) expFill.style.width = expPct + '%';
-    
-    const levelText = document.getElementById('player-level');
-    if (levelText) levelText.innerText = `Lv.${GAME.player.level}`;
-
-    // ライフ(残機)の更新
-    const livesSpan = document.getElementById('player-lives');
-    if (livesSpan) {
-        let hearts = '';
-        for(let i = 0; i < GAME.player.maxLives; i++) {
-            hearts += i < GAME.player.lives ? '❤️' : '🖤';
-        }
-        livesSpan.innerText = hearts;
-    }
+function createProjectile(targetPos, color) {
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), new THREE.MeshBasicMaterial({color:color}));
+    mesh.position.copy(targetPos); scene.add(mesh);
+    let s = 1;
+    const int = setInterval(()=>{
+        s+=0.2; mesh.scale.set(s,s,s);
+        if(s>2.5) { scene.remove(mesh); clearInterval(int); }
+    }, 30);
 }
 
-function addChatMessage(sender, msg, className) {
+function createAura(color, scale=1) {
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(2*scale, 2*scale, 4*scale, 16,1,true), new THREE.MeshBasicMaterial({color:color, transparent:true, opacity:0.5}));
+    mesh.position.copy(playerMesh.position); scene.add(mesh);
+    let o = 0.5;
+    const int = setInterval(()=>{
+        o-=0.05; mesh.position.y+=0.2; mesh.material.opacity=o;
+        if(o<=0) { scene.remove(mesh); clearInterval(int); }
+    }, 30);
+}
+
+function showCenterMessage(text, color="var(--gold)") {
+    const el = document.getElementById('sys-msg');
+    el.innerText = text; el.style.color = color; el.style.opacity = 1;
+    setTimeout(() => el.style.opacity = 0, 2000);
+}
+
+function logMsg(sender, text, cls) {
     const box = document.getElementById('chat-messages');
-    const div = document.createElement('div');
-    div.innerHTML = `<span class="${className}">[${sender}] ${msg}</span>`;
-    box.appendChild(div);
-    box.scrollTop = box.scrollHeight;
+    const d = document.createElement('div'); d.className = cls; d.innerText = `[${sender}] ${text}`;
+    box.appendChild(d); box.scrollTop = box.scrollHeight;
+    if(box.children.length>30) box.removeChild(box.firstChild);
+}
+function toggleStampMenu() {
+    const m = document.getElementById('stamp-menu'); m.style.display = (m.style.display==='flex') ? 'none' : 'flex';
+}
+function sendStamp(stamp) {
+    logMsg('Hero', stamp, 'msg-say'); document.getElementById('stamp-menu').style.display = 'none';
+    floatText(stamp, 'white', playerMesh.position); 
 }
 
-// Resize Handling
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
+// ==========================================
+// Main Loop
+// ==========================================
+function updateGame(dt, now) {
+    if(GAME.isGameOver) return;
 
-// Game Loop
-function animate() {
-    requestAnimationFrame(animate);
-    const dt = clock.getDelta();
-
-    // 1. Player Movement (Camera relative)
-    const moveSpeed = 12 * dt;
-    const direction = new THREE.Vector3();
+    let moveDir = new THREE.Vector3(0,0,0);
+    const forward = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion); forward.y=0; forward.normalize();
+    const right = new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion); right.y=0; right.normalize();
     
-    // Get camera forward/right directions (projected on XZ plane)
-    const camForward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    camForward.y = 0; camForward.normalize();
-    const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-    camRight.y = 0; camRight.normalize();
-
-    if (GAME.keys.w) direction.add(camForward);
-    if (GAME.keys.s) direction.sub(camForward);
-    if (GAME.keys.a) direction.sub(camRight);
-    if (GAME.keys.d) direction.add(camRight);
-
-    if (direction.lengthSq() > 0 && GAME.player.hp > 0 && !GAME.isGameOver) {
-        direction.normalize();
-        playerMesh.position.addScaledVector(direction, moveSpeed);
-        
-        // Adjust player Y to terrain height
-        const px = playerMesh.position.x;
-        const pz = playerMesh.position.z;
-        const terrainY = Math.sin(px * 0.1) * Math.cos(pz * 0.1) * 1.5 + Math.sin(px * 0.05) * 2.0;
-        playerMesh.position.y = terrainY;
-
-        // Rotate player to face movement direction
-        const targetRot = Math.atan2(direction.x, direction.z);
-        // Smooth rotation
-        let diff = targetRot - playerMesh.rotation.y;
-        while (diff < -Math.PI) diff += Math.PI * 2;
-        while (diff > Math.PI) diff -= Math.PI * 2;
-        playerMesh.rotation.y += diff * 0.1;
+    if (GAME.autoBattle) {
+        if(!GAME.target || GAME.target.isDead) smartTarget();
+        if(GAME.target) {
+            const dir = new THREE.Vector3().subVectors(GAME.target.mesh.position, playerMesh.position);
+            dir.y = 0; const dist = dir.length();
+            if(dist > 3) moveDir = dir.normalize();
+            else {
+                if(!GAME.cooldowns[1]) castSkill(1);
+                if(!GAME.cooldowns[2] && GAME.player.mp >= 20) castSkill(2);
+            }
+        }
+    } else {
+        // Keyboard Input (PC Only)
+        if (GAME.keys.w) moveDir.add(forward);
+        if (GAME.keys.s) moveDir.sub(forward);
+        if (GAME.keys.a) moveDir.sub(right);
+        if (GAME.keys.d) moveDir.add(right);
     }
 
-    // 2. Camera Positioning (Orbit around player)
-    const { radius, theta, phi } = GAME.cameraAngles;
-    const camX = playerMesh.position.x + radius * Math.sin(phi) * Math.sin(theta);
-    const camY = playerMesh.position.y + radius * Math.cos(phi) + 1.5; // +1.5 offset to look at head
-    const camZ = playerMesh.position.z + radius * Math.sin(phi) * Math.cos(theta);
-    
-    camera.position.set(camX, Math.max(camY, playerMesh.position.y + 0.5), camZ); // Prevent clipping under ground
-    camera.lookAt(playerMesh.position.x, playerMesh.position.y + 1.5, playerMesh.position.z);
+    if (moveDir.lengthSq() > 0.01) {
+        moveDir.normalize();
+        playerMesh.position.addScaledVector(moveDir, GAME.player.speed * dt);
+        const targetRot = Math.atan2(moveDir.x, moveDir.z);
+        let diff = targetRot - playerMesh.rotation.y;
+        while(diff < -Math.PI) diff+=Math.PI*2; while(diff > Math.PI) diff-=Math.PI*2;
+        playerMesh.rotation.y += diff * 10 * dt;
+        
+        // 歩行アニメーション (手足を振る)
+        const walkSpeed = 15;
+        playerParts.rightArm.rotation.x = Math.sin(now * walkSpeed) * 0.5;
+        playerParts.leftArm.rotation.x = -Math.sin(now * walkSpeed) * 0.5;
+        playerParts.rightLeg.rotation.x = -Math.sin(now * walkSpeed) * 0.5;
+        playerParts.leftLeg.rotation.x = Math.sin(now * walkSpeed) * 0.5;
+        playerParts.headGroup.position.y = 2.2 + Math.abs(Math.sin(now * walkSpeed)) * 0.05;
+        playerParts.body.position.y = 1.3 + Math.abs(Math.sin(now * walkSpeed)) * 0.05;
+    } else {
+        // 停止時は元の姿勢に戻す (攻撃アニメーション中以外)
+        if (!GAME.cooldowns[1]) playerParts.rightArm.rotation.x = 0;
+        playerParts.leftArm.rotation.x = 0;
+        playerParts.rightLeg.rotation.x = 0;
+        playerParts.leftLeg.rotation.x = 0;
+        playerParts.headGroup.position.y = 2.2;
+        playerParts.body.position.y = 1.3;
+    }
 
-    // 3. Update Entities (NPCs, Monsters)
+    playerMesh.position.y = getTerrainHeight(playerMesh.position.x, playerMesh.position.z);
+
+    if(GAME.player.mp < GAME.player.maxMp) { GAME.player.mp += 5*dt; updateUI(); }
+
+    const camTarget = playerMesh.position.clone(); camTarget.y += 2;
+    const cx = camTarget.x + GAME.cameraAngles.radius * Math.sin(GAME.cameraAngles.phi) * Math.sin(GAME.cameraAngles.theta);
+    const cy = camTarget.y + GAME.cameraAngles.radius * Math.cos(GAME.cameraAngles.phi);
+    const cz = camTarget.z + GAME.cameraAngles.radius * Math.sin(GAME.cameraAngles.phi) * Math.cos(GAME.cameraAngles.theta);
+    camera.position.lerp(new THREE.Vector3(cx,cy,cz), 0.2);
+    camera.lookAt(camTarget);
+
+    // AI & Name Tag Projection
     GAME.entities.forEach(ent => {
-        if (!ent.mesh.visible) return;
+        if(ent.isDead) return;
+        ent.phase += dt * 5;
+        
+        let targetBaseY = getTerrainHeight(ent.mesh.position.x, ent.mesh.position.z);
+        if (ent.subType === 'bat') targetBaseY += 3;
+        else targetBaseY += 1;
+        ent.baseY = targetBaseY;
 
-        if (ent.type === 'npc') {
-            // Random movement
-            if (ent.mesh.position.distanceTo(ent.targetPos) < 1) {
-                ent.targetPos.set(
-                    ent.mesh.position.x + (Math.random() - 0.5) * 20,
-                    0,
-                    ent.mesh.position.z + (Math.random() - 0.5) * 20
-                );
-            }
-            // Ignore Y for distance calculation towards target
-            const tempTarget = ent.targetPos.clone();
-            tempTarget.y = ent.mesh.position.y;
-            const dir = tempTarget.sub(ent.mesh.position).normalize();
-            ent.mesh.position.addScaledVector(dir, ent.speed * dt);
-            
-            // Adjust NPC Y to terrain height
-            const nx = ent.mesh.position.x;
-            const nz = ent.mesh.position.z;
-            ent.mesh.position.y = Math.sin(nx * 0.1) * Math.cos(nz * 0.1) * 1.5 + Math.sin(nx * 0.05) * 2.0;
+        // アニメーション分岐
+        if (ent.subType === 'bat') {
+            ent.mesh.position.y = ent.baseY + Math.sin(ent.phase) * 0.5; // 浮遊
+            ent.parts.leftWing.rotation.y = Math.sin(ent.phase * 3) * 0.8;
+            ent.parts.rightWing.rotation.y = -Math.sin(ent.phase * 3) * 0.8;
+        } else if (ent.subType === 'golem') {
+            ent.mesh.position.y = ent.baseY + Math.abs(Math.sin(ent.phase * 0.5)) * 0.2; // ズシンズシン
+            ent.parts.leftArm.rotation.x = Math.sin(ent.phase * 0.5) * 0.3;
+            ent.parts.rightArm.rotation.x = -Math.sin(ent.phase * 0.5) * 0.3;
+        } else {
+            // スライム
+            ent.mesh.position.y = ent.baseY + Math.abs(Math.sin(ent.phase))*0.5;
+        }
 
-            // NPC Rotation
-            const targetRot = Math.atan2(dir.x, dir.z);
-            let diff = targetRot - ent.mesh.rotation.y;
-            while (diff < -Math.PI) diff += Math.PI * 2;
-            while (diff > Math.PI) diff -= Math.PI * 2;
-            ent.mesh.rotation.y += diff * 0.1;
-
-        } else if (ent.type === 'monster') {
-            const distToPlayer = ent.mesh.position.distanceTo(playerMesh.position);
-
-            if (distToPlayer < ent.aggroRange && GAME.player.hp > 0) {
-                // プレイヤーを追いかける
-                const dir = playerMesh.position.clone().sub(ent.mesh.position);
-                dir.y = 0; // 高さは無視して水平方向のみ
-                dir.normalize();
-
-                if (distToPlayer > ent.attackRange) {
-                    // 移動
-                    ent.mesh.position.addScaledVector(dir, ent.speed * dt);
+        const dist = playerMesh.position.distanceTo(ent.mesh.position);
+        if(dist < 20) { 
+            if(dist > ent.attackRange) {
+                const dir = new THREE.Vector3().subVectors(playerMesh.position, ent.mesh.position);
+                dir.y=0; dir.normalize();
+                ent.mesh.position.addScaledVector(dir, ent.speed*dt);
+                ent.mesh.rotation.y = Math.atan2(dir.x, dir.z); // 進行方向を向く
+            } else if (now - ent.lastAttack > 2) {
+                ent.lastAttack = now;
+                if(!GAME.player.isInvulnerable) {
+                    GAME.player.hp -= ent.damage;
+                    floatText(ent.damage, '#ff0000', playerMesh.position);
+                    updateUI();
                     
-                    // 地形の高さに合わせる
-                    const nx = ent.mesh.position.x;
-                    const nz = ent.mesh.position.z;
-                    ent.baseY = Math.sin(nx * 0.1) * Math.cos(nz * 0.1) * 1.5 + Math.sin(nx * 0.05) * 2.0 + 0.6;
+                    // 胴体が赤く点滅するダメージエフェクト
+                    const m = playerParts.body.material; const c = m.color.getHex();
+                    m.color.setHex(0xff0000); setTimeout(()=>m.color.setHex(c), 200);
                     
-                    // プレイヤーの方を向く
-                    const targetRot = Math.atan2(dir.x, dir.z);
-                    let diff = targetRot - ent.mesh.rotation.y;
-                    while (diff < -Math.PI) diff += Math.PI * 2;
-                    while (diff > Math.PI) diff -= Math.PI * 2;
-                    ent.mesh.rotation.y += diff * 0.1;
-
-                    // 追いかけている時のジャンプアニメーション
-                    ent.jumpPhase += dt * 10;
-                    ent.mesh.position.y = ent.baseY + Math.abs(Math.sin(ent.jumpPhase)) * 0.8;
-                } else {
-                    // 攻撃範囲内
-                    ent.mesh.position.y = ent.baseY; // 接地
-                    
-                    const now = clock.getElapsedTime();
-                    if (now - ent.lastAttackTime > ent.attackCooldown) {
-                        ent.lastAttackTime = now;
-                        monsterAttack(ent);
+                    if(GAME.player.hp <= 0) {
+                        GAME.player.lives--;
+                        if(GAME.player.lives > 0) {
+                            GAME.player.hp = GAME.player.maxHp;
+                            playerMesh.position.set(0,0,0);
+                            logMsg('System', `力尽きた... 残りライフ:${GAME.player.lives}`, 'msg-sys');
+                        } else {
+                            GAME.isGameOver = true;
+                            showCenterMessage("GAME OVER", "#ff0000");
+                        }
                     }
                 }
-            } else {
-                // Idle animation (jumping slimes) - プレイヤーから遠い時
-                ent.jumpPhase += dt * 5;
-                ent.mesh.position.y = ent.baseY + Math.abs(Math.sin(ent.jumpPhase)) * 0.5;
             }
         }
 
-        // Update Name Tags 3D to 2D projection
-        if (ent.mesh.userData.nameTag) {
-            const pos = ent.mesh.position.clone();
-            pos.y += 2.5; // Offset above entity
-            pos.project(camera);
-            
-            // Check if behind camera
-            if (pos.z > 1) {
-                ent.mesh.userData.nameTag.style.display = 'none';
-            } else {
-                ent.mesh.userData.nameTag.style.display = 'block';
-                const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
-                const y = (pos.y * -0.5 + 0.5) * window.innerHeight;
-                ent.mesh.userData.nameTag.style.left = `${x}px`;
-                ent.mesh.userData.nameTag.style.top = `${y}px`;
+        if(ent.mesh.userData.nameTag && ent.mesh.visible) {
+            const v = new THREE.Vector3().copy(ent.mesh.position); v.y+=2; v.project(camera);
+            if(v.z > 1) { ent.mesh.userData.nameTag.style.opacity = 0; }
+            else {
+                ent.mesh.userData.nameTag.style.left = `${(v.x*.5+.5)*window.innerWidth}px`;
+                ent.mesh.userData.nameTag.style.top = `${(v.y*-.5+.5)*window.innerHeight}px`;
+                ent.mesh.userData.nameTag.style.opacity = 1;
             }
         }
     });
+}
 
-    // Auto-regen HP/MP slowly
-    if (GAME.player.hp > 0 && !GAME.isGameOver) {
-        if (GAME.player.hp < GAME.player.maxHp) {
-            GAME.player.hp = Math.min(GAME.player.maxHp, GAME.player.hp + 5 * dt);
-        }
-        if (GAME.player.mp < GAME.player.maxMp) {
-            GAME.player.mp = Math.min(GAME.player.maxMp, GAME.player.mp + 2 * dt);
-        }
-    }
-    updatePlayerUI();
-
+function animate() {
+    requestAnimationFrame(animate);
+    const dt = Math.min(clock.getDelta(), 0.1);
+    updateGame(dt, clock.getElapsedTime());
     renderer.render(scene, camera);
 }
 
-// Start Game
-window.onload = init;
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(init, 100);
+} else {
+    window.addEventListener('DOMContentLoaded', init);
+}
+
 </script>
 </body>
 </html>
